@@ -141,7 +141,7 @@ class country_boundary():
         
         return(self.comp_summary)       
     
-    def map_corrected_bounds(self):
+    def map_corrected_bounds(self, geobounds_label='GeoBounds'):
         ''' generate folium map comparing boundaries
         '''
         selWB = self.wb_bounds
@@ -156,12 +156,13 @@ class country_boundary():
         wb_shp.add_to(m)
 
         # add the original geobounds to the map as a blue polygon
-        in_geo_shp = folium.GeoJson(mapping(self.geoBounds.unary_union), name='GeoBounds', style_function=lambda feature: {
+        in_geo_shp = folium.GeoJson(mapping(self.geoBounds.unary_union), name=geobounds_label, style_function=lambda feature: {
             'color':'blue',
             'weight':0.5
         }) 
         in_geo_shp.add_to(m)
 
+        '''
         # add the slivers to the map                
         in_geo_shp = folium.GeoJson(mapping(self.wb_sliver_df.unary_union), name='Slivers', style_function=lambda feature: {
             'color':'green',
@@ -175,14 +176,13 @@ class country_boundary():
             'weight':5
         }) 
         in_geo_shp.add_to(m)
-        
         # add the correct geo_bounds one by one as red
-        geo_bounds = folium.GeoJson(mapping(edit_geo.unary_union), name='GeoBounds corrected', style_function=lambda feature: {
+        geo_bounds = folium.GeoJson(mapping(edit_geo.unary_union), name=f'{geobounds_label} corrected', style_function=lambda feature: {
             'color':'red',
             'weight':1
         })
-    
         geo_bounds.add_to(m)
+        '''
         folium.LayerControl(collapsed=True).add_to(m)
         return(m)
         
