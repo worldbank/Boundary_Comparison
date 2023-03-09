@@ -1,13 +1,14 @@
 format: jb-book
-root: readme_link.rst
+root: README
 
 parts:
   - caption: Border comparisons
     numbered: True
-    chapters:      
-      - file: vietnam_results.md
-      - file: kenya_results.md
-      - file: Conclusion.md
+    chapters:
+      - file: docs/vietnam_results.md
+      - file: docs/kenya_results
+      - file: notebooks/Comparing_Boundaries.ipynb
+      - file: docs/Conclusion
   - caption: Additional Resources
     chapters:
       - url: https://www.worldbank.org/en/about/unit/unit-dec
