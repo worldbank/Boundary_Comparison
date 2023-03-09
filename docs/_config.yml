@@ -1,7 +1,7 @@
 # Book settings
 title:
 author: Benjamin P. Stewart
-logo: images/logo.png
+logo: docs/images/logo.png
 only_build_toc_files: true
 
 repository:
@@ -16,7 +16,7 @@ html:
   use_edit_page_button: true
   use_repository_button: true
   use_issues_button: true
-  baseurl: https://worldbank.github.io/template
+  baseurl: https://worldbank.github.io/Boundary_Comparison
 
 #######################################################################################
 # Execution settings
@@ -24,7 +24,7 @@ execute:
   execute_notebooks: force
   allow_errors: true
   exclude_patterns:
-    - notebooks/nasa-apod.ipynb
+    - notebooks/*.ipynb
 
 #######################################################################################
 # Sphinx settings
