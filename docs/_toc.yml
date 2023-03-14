@@ -5,9 +5,8 @@ parts:
   - caption: Border comparisons
     numbered: True
     chapters:
-      - file: docs/vietnam_results.md
-      - file: docs/kenya_results
-      - file: notebooks/Comparing_Boundaries.ipynb
+      - file: notebooks/VNM_Boundary_Comparison.ipynb
+      - file: docs/kenya_results      
       - file: docs/Conclusion
   - caption: Additional Resources
     chapters:
