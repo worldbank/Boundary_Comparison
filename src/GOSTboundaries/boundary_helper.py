@@ -1,9 +1,14 @@
 import sys, os, importlib, json
 import folium, shapely, rasterio
 
+import contextily as ctx
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import pandas as pd
 import geopandas as gpd
 
+from rasterio.crs import CRS
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from h3 import h3
 from shapely.geometry import Polygon, Point, mapping
 from shapely.ops import unary_union
@@ -88,7 +93,7 @@ class country_boundary():
                 # Attach medium resolution IDs to h3 grid
                 h3_data = self.match_datasets(h3_data, bounds1, 'shape_id', self.wb_id_col, label="Matching h3 to bounds 1")
                 h3_data.columns = ['geometry', 'shape_id', 'med_id', 'med_per'] 
-                # Attach high resolution IDs to medium resolution dataset
+                # Attach high resolution IDs to h3 grid
                 h3_data = self.match_datasets(h3_data, bounds2, 'shape_id', "geo_match_id", label="Matching h3 to bounds 2")
                 self.h3_data = h3_data
             
@@ -126,13 +131,38 @@ class country_boundary():
             self.wb_mapped = gpd.GeoDataFrame(wb_mapped, geometry='geometry', crs=crs)
     
     def ntl_summary(self, table_label = 'Number of districts with NTL change (medium to high)',
-                          thresholds = [-1, -0.15, -0.05, 0.05, 0.15, 0.50, 1, 100], 
-                          labels = ['>-15%', '-15% to -5%', "No change", "5% to 15%", '15% to 50%', "50% to 100%", "> 100%"]):
+                          thresholds = [-1, -0.10, -0.02, 0.02, 0.10, 0.50, 1, 100], 
+                          labels = ['< -10%',  '-10% to -2%', "No change", "2% to 10%", '10% to 50%', "50% to 100%", "> 100%"],
+                          colors = ['#0571B0','#63A9CF',     '#F7F7F7',   "#F5A683",   "#D7604D"   , "#B3172B"    , "#67001F"],
+                          legend_loc='upper right'):
         '''
         '''                
-        ntl_change = self.wb_mapped.copy()
-        ntl_change[table_label] = pd.cut(self.wb_mapped['PER_NTL'], thresholds, labels=labels)
-        return(ntl_change.groupby([table_label])['OBJECTID'].count())
+        ntl_change = self.wb_mapped.copy()        
+        ntl_change[table_label] = pd.cut(ntl_change['PER_NTL'], thresholds, labels=labels)
+        
+        color_dict = dict(zip(labels, colors))            
+        fig, ax = plt.subplots(figsize=(15,15))
+        proj = CRS.from_epsg(3857)
+        try:
+            ntl_change = ntl_change.to_crs(proj)
+        except:
+            ntl_change.crs = 4326
+            ntl_change = ntl_change.to_crs(proj)            
+        #divider = make_axes_locatable(ax)
+        #cax = divider.append_axes("right", size="5%", pad=0.1)
+        all_labels = []
+        for ctype, data in ntl_change.groupby(table_label)    :
+            color = color_dict[ctype]
+            if data.shape[0] > 0:
+                data.plot(color=color, ax=ax, label=ctype, linewidth=0.2)
+                cur_patch = mpatches.Patch(color=color, label=f'{ctype} [{data.shape[0]}]')
+                all_labels.append(cur_patch)
+
+        ctx.add_basemap(ax, source=ctx.providers.Stamen.TonerBackground, crs=proj) #zorder=-10, 'EPSG:4326'
+        ax.legend(handles=all_labels, loc=legend_loc)
+        ax = ax.set_axis_off()
+                
+        return([ax, ntl_change.groupby([table_label])['OBJECTID'].count()])
     
     def get_geobounds(self, geobounds_url = 'https://www.geoboundaries.org/api/current/gbOpen/{iso3}/ADM{lvl}/', lvl=2):
         ''' access the geoboundaries al the defined level
@@ -341,7 +371,80 @@ class country_boundary():
 
         # folium.LayerControl(collapsed=True).add_to(m)
         return(m)
+
+    def static_map_lc(self, sub='', map_epsg=3857, legend_loc='upper right',
+                        esa_legend = "/home/public/Data/GLOBAL/LANDCOVER/GLOBCOVER/2015/GLOBCOVER_LEGEND.csv"):
+        ''' generate a static map of the Landcover zonal results        
+        '''
+        if sub == '':
+            try:
+                sub = self.wb_mapped.copy()
+            except:
+                raise(ValueError("Need to run_zonal or proivde a DF for mapping"))
+        try:
+            sub = sub.to_crs(map_epsg)
+        except:
+            sub.crs = 4326
+            sub = sub.to_crs(map_epsg)
+        # Create dictionary of mapping values
+        esa_legend = "/home/public/Data/GLOBAL/LANDCOVER/GLOBCOVER/2015/GLOBCOVER_LEGEND.csv"
+        esa_data = pd.read_csv(esa_legend)
+        esa_data['Value'] = esa_data['Value'].apply(lambda x: f'LC_{x}')
+        esa_dict   = dict(zip(esa_data['Value'], esa_data['Hex']))
+        esa_labels = dict(zip(esa_data['Value'], esa_data['Shortname']))
+
+        fig, ax = plt.subplots(figsize=(15,15))
+        proj = CRS.from_epsg(map_epsg)
+        #divider = make_axes_locatable(ax)
+        #cax = divider.append_axes("right", size="5%", pad=0.1)
+        sel_mixed = sub.loc[sub['LC_Match'] == False].copy()
+        mismatch_color = 'pink'
+        mismatch_edge = 'darkred'
+        cur_patch = mpatches.Patch(facecolor=mismatch_color, edgecolor=mismatch_edge, hatch="///", label=f"Mismatch [{sel_mixed.shape[0]}]")
+        all_labels = [cur_patch]
+        for ctype, data in sub.groupby("LC_MAX")    :
+            color = esa_dict[ctype]
+            data.plot(color=color, ax=ax, label=ctype, linewidth=0.2)
+            cur_patch = mpatches.Patch(color=color, label=f'{esa_labels[ctype]} [{data.shape[0]}]')
+            all_labels.append(cur_patch)
+        # Add outline of features with mismatch
+        sel_mixed.plot(color=mismatch_color, edgecolor=mismatch_edge, hatch="//////", ax=ax, label=False, linewidth=4)
         
+        ctx.add_basemap(ax, source=ctx.providers.Stamen.TonerBackground, crs=proj) #zorder=-10, 'EPSG:4326'
+        ax.legend(handles=all_labels, loc=legend_loc)
+        ax = ax.set_axis_off()
+        return(ax)
+        
+    def static_map_h3(self, sub='', map_epsg=3857, legend_loc='upper right'):
+        ''' generate a static map of the Landcover zonal results        
+        '''
+        if sub == '':
+            try:
+                sub = self.h3_data.copy()
+            except:
+                raise(ValueError("Need to run_zonal or proivde a DF for mapping"))
+        sub = sub.to_crs(map_epsg)
+        # Create dictionary of mapping values
+        sub['h3_match'] = sub.apply(lambda x: str(x['med_id'] == x['geo_match_id']), axis=1)
+        
+        h3_dict   = {'False': '#B3172B', 'True':'#FFFFFF'}       
+        edge_dict = {'False': '#B3172B', 'True':'#808080'}       
+        fig, ax = plt.subplots(figsize=(15,15))
+        proj = CRS.from_epsg(map_epsg)
+        #divider = make_axes_locatable(ax)
+        #cax = divider.append_axes("right", size="5%", pad=0.1)
+        all_labels = []
+        for ctype, data in sub.groupby("h3_match")    :
+            color = h3_dict[ctype]
+            data.plot(color=color, ax=ax, label=ctype, linewidth=0.2, edgecolor=edge_dict[ctype])
+            cur_patch = mpatches.Patch(facecolor=color, label=f'{ctype} [{data.shape[0]}]', edgecolor=edge_dict[ctype])
+            all_labels.append(cur_patch)
+
+        ctx.add_basemap(ax, source=ctx.providers.Stamen.TonerBackground, crs=proj) #zorder=-10, 'EPSG:4326'
+        ax.legend(handles=all_labels, loc=legend_loc)
+        ax = ax.set_axis_off()
+        return(ax)
+
     def match_datasets(self, inD1, inD2, inD1_col, inD2_col, label='Matching Datasets'):
         ''' Attach unique IDs between two admin datasets. For each dataset, identify primary match in dataset 2, and some information describing the intersection
         
@@ -435,9 +538,7 @@ class country_boundary():
             except:
                 pass
         return(final)
-                
-            
-
+                            
     def write_output(self, output_folder, write_slivers=True, write_base=True):
         ''' write output data to a single folder
         '''

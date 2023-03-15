@@ -3,7 +3,7 @@ root: README
 
 parts:
   - caption: Border comparisons
-    numbered: True
+    numbered: False
     chapters:
       - file: notebooks/VNM_Boundary_Comparison.ipynb
       - file: notebooks/KEN_Boundary_Comparison.ipynb
