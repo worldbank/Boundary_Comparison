@@ -6,7 +6,8 @@ parts:
     numbered: True
     chapters:
       - file: notebooks/VNM_Boundary_Comparison.ipynb
-      - file: docs/kenya_results      
+      - file: notebooks/KEN_Boundary_Comparison.ipynb
+      - file: notebooks/UZB_Boundary_Comparison.ipynb
       - file: docs/Conclusion
   - caption: Additional Resources
     chapters:

@@ -120,9 +120,10 @@ class country_boundary():
             wb_mapped['LC_Match'] = wb_mapped.apply(lambda x: x['LC_MAX'] == x['LC_MAX_High'], axis=1)
             wb_mapped['LC_MAX'] = wb_mapped['LC_MAX'].astype(str)
             wb_mapped['LC_MAX_High'] = wb_mapped['LC_MAX'].astype(str)
+            crs = wb_mapped.crs
             wb_mapped = wb_mapped.apply(pd.to_numeric, errors='ignore')
             
-            self.wb_mapped = wb_mapped
+            self.wb_mapped = gpd.GeoDataFrame(wb_mapped, geometry='geometry', crs=crs)
     
     def ntl_summary(self, table_label = 'Number of districts with NTL change (medium to high)',
                           thresholds = [-1, -0.15, -0.05, 0.05, 0.15, 0.50, 1, 100], 
@@ -358,7 +359,9 @@ class country_boundary():
             selD2 = selD2.sort_values('iArea', ascending=False)
             inD1.loc[idx,'geo_match_id']  = selD2[inD2_col].iloc[0]
             inD1.loc[idx,'geo_match_per'] = selD2['iArea'].iloc[0]
-    
+        crs = inD1.crs        
+        inD1 = inD1.apply(pd.to_numeric, errors='ignore')        
+        inD1 = gpd.GeoDataFrame(inD1, geometry='geometry', crs=crs)
         return(inD1)
     
     def run_zonal(self, file_defs, z_geoB=True, z_wbB=True, z_corB=False, z_h3=False):
@@ -390,29 +393,29 @@ class country_boundary():
             name = file_def[1]
             if file_def[2] == 'N':
                 if z_geoB:
-                    geo_res = rMisc.zonalStats(geoB, curR, rastType=file_def[2])
+                    geo_res = rMisc.zonalStats(geoB, curR, rastType=file_def[2], reProj=True)
                     geo_res = gpd.GeoDataFrame(geo_res, columns = [f'{name}_{x}' for x in ['SUM', 'MIN', 'MAX', 'MEAN']])
                 if z_wbB:
-                    geo_res_wb = rMisc.zonalStats(wbB, curR, rastType=file_def[2])
+                    geo_res_wb = rMisc.zonalStats(wbB, curR, rastType=file_def[2], reProj=True)
                     geo_res_wb = gpd.GeoDataFrame(geo_res_wb, columns = [f'{name}_{x}' for x in ['SUM', 'MIN', 'MAX', 'MEAN']])
                 if z_corB:
-                    geo_res_cor = rMisc.zonalStats(corB, curR, rastType=file_def[2])
+                    geo_res_cor = rMisc.zonalStats(corB, curR, rastType=file_def[2], reProj=True)
                     geo_res_cor = gpd.GeoDataFrame(geo_res_cor, columns = [f'{name}_{x}' for x in ['SUM', 'MIN', 'MAX', 'MEAN']])
                 if z_h3:
-                    geo_res_h3 = rMisc.zonalStats(h3_grid, curR, rastType=file_def[2])
+                    geo_res_h3 = rMisc.zonalStats(h3_grid, curR, rastType=file_def[2], reProj=True)
                     geo_res_h3 = gpd.GeoDataFrame(geo_res_h3, columns = [f'{name}_{x}' for x in ['SUM', 'MIN', 'MAX', 'MEAN']])
             else:
                 if z_geoB:
-                    geo_res = rMisc.zonalStats(geoB, curR, rastType=file_def[2], unqVals=file_def[3])
+                    geo_res = rMisc.zonalStats(geoB, curR, rastType=file_def[2], unqVals=file_def[3], reProj=True)
                     geo_res = gpd.GeoDataFrame(geo_res, columns = [f'{name}_{x}' for x in file_def[3]])
                 if z_wbB:
-                    geo_res_wb = rMisc.zonalStats(wbB, curR, rastType=file_def[2], unqVals=file_def[3])
+                    geo_res_wb = rMisc.zonalStats(wbB, curR, rastType=file_def[2], unqVals=file_def[3], reProj=True)
                     geo_res_wb = gpd.GeoDataFrame(geo_res_wb, columns = [f'{name}_{x}' for x in file_def[3]])                    
                 if z_corB:
-                    geo_res_cor = rMisc.zonalStats(corB, curR, rastType=file_def[2], unqVals=file_def[3])
+                    geo_res_cor = rMisc.zonalStats(corB, curR, rastType=file_def[2], unqVals=file_def[3], reProj=True)
                     geo_res_cor = gpd.GeoDataFrame(geo_res_cor, columns = [f'{name}_{x}' for x in file_def[3]])
                 if z_corB:
-                    geo_res_h3 = rMisc.zonalStats(h3_grid, curR, rastType=file_def[2], unqVals=file_def[3])
+                    geo_res_h3 = rMisc.zonalStats(h3_grid, curR, rastType=file_def[2], unqVals=file_def[3], reProj=True)
                     geo_res_h3 = gpd.GeoDataFrame(geo_res_h3, columns = [f'{name}_{x}' for x in file_def[3]])
             final[name] = {}
             try:
@@ -440,11 +443,23 @@ class country_boundary():
         '''
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
-            
+        try:
+            self.h3_data.to_file(os.path.join(output_folder, 'h3_grid.geojson'), driver="GeoJSON")
+        except:
+            pass
+        
         if write_base:
             self.wb_bounds.to_file(os.path.join(output_folder, 'WB_bounds.geojson'), driver="GeoJSON")
             self.geoBounds.to_file(os.path.join(output_folder, 'GEO_bounds.geojson'), driver="GeoJSON")
-        self.corrected_geo.to_file(os.path.join(output_folder, 'GEO_CORRECTED_bounds.geojson'), driver="GeoJSON")
+        try:
+            self.corrected_geo.to_file(os.path.join(output_folder, 'GEO_CORRECTED_bounds.geojson'), driver="GeoJSON")
+        except:
+            pass
+            
+        try:
+            self.wb_mapped.to_file(os.path.join(output_folder, 'WB_bounds_zonal.geojson'), driver="GeoJSON")
+        except:
+            pass
         if write_slivers:
             self.wb_sliver_df.to_file(os.path.join(output_folder, 'WB_slivers.geojson'), driver="GeoJSON")
             try:
