@@ -432,7 +432,7 @@ title="Print to PDF"
                 
   <section class="tex2jax_ignore mathjax_ignore" id="uzbekistan-boundary-comparison">
 <h1><span class="section-number">3. </span>Uzbekistan Boundary Comparison<a class="headerlink" href="#uzbekistan-boundary-comparison" title="Permalink to this headline">#</a></h1>
-<div class="cell docutils container">
+<div class="cell tag_hide-input docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">importlib</span><span class="o">,</span> <span class="nn">json</span><span class="o">,</span> <span class="nn">multiprocessing</span>
 <span class="kn">import</span> <span class="nn">folium</span><span class="o">,</span> <span class="nn">shapely</span><span class="o">,</span> <span class="nn">rasterio</span>
@@ -458,7 +458,7 @@ title="Print to PDF"
 </div>
 </div>
 </div>
-<div class="cell docutils container">
+<div class="cell tag_hide-input docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">geobounds_url</span> <span class="o">=</span> <span class="s1">&#39;https://www.geoboundaries.org/api/current/gbOpen/</span><span class="si">{iso3}</span><span class="s1">/ADM</span><span class="si">{lvl}</span><span class="s1">/&#39;</span>
 <span class="n">sel_iso3</span> <span class="o">=</span> <span class="s1">&#39;UZB&#39;</span>
@@ -491,14 +491,7 @@ Matching h3 to bounds 2: 100%|██████████| 10596/10596 [04:05
 </div>
 </div>
 </div>
-<div class="cell docutils container">
-<div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span><span class="n">comparer</span><span class="o">.</span><span class="n">wb_mapped</span><span class="p">,</span> <span class="n">geometry</span><span class="o">=</span><span class="s1">&#39;geometry&#39;</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="mi">4326</span><span class="p">)</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_folder</span><span class="p">,</span> <span class="s1">&#39;WB_bounds_zonal.geojson&#39;</span><span class="p">),</span> <span class="n">driver</span><span class="o">=</span><span class="s2">&quot;GeoJSON&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-<div class="cell docutils container">
+<div class="cell tag_hide-input docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">comparer</span><span class="o">.</span><span class="n">write_output</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_folder</span><span class="p">,</span> <span class="n">sel_iso3</span><span class="p">),</span> <span class="n">write_slivers</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
